@@ -8,6 +8,6 @@ async def async_setup_panel(hass):
         sidebar_icon="mdi:web",
         frontend_url_path="hello-world",
         config={
-            "url": "https://example.org"
+            "url": "https://senmdaniel.github.io/ha-hello-world-/"
         },
     )
