@@ -1,4 +1,6 @@
 {
   "name": "Hello World",
-  "homeassistant": "2025.1.0"
+  "content_in_root": true,
+  "country": "NL",
+  "homeassistant": "2023.1.0"
 }
