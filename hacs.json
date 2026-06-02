@@ -1,5 +1,4 @@
 {
   "name": "Hello World JSON",
-  "content_in_root": true,
-  "filename": "hello.json"
+  "content_in_root": false
 }
