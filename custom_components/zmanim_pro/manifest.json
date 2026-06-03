@@ -1,11 +1,11 @@
 {
-  "domain": "zmanim_pro",
+  "domain": "zman_pro",
   "name": "Zmanim Pro",
   "codeowners": ["@senmdaniel"],
   "config_flow": false,
   "documentation": "https://github.com",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/issues",
-  "requirements": ["convertdate==2.4.0"],
+  "requirements": ["convertdate==2.4.0", "astral==3.2"],
   "version": "1.0.0"
 }
