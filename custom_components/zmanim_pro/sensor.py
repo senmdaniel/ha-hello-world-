@@ -1,5 +1,7 @@
 from datetime import timedelta
-from homeassistant.helpers.entity import Entity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .date_provider import DateProvider
 from .sensors_data import GregorianDateSensor, JewishDateSensor
@@ -8,8 +10,12 @@ from .sensors_tijden import ZmanimTimeSensor
 
 SCAN_INTERVAL = timedelta(minutes=30)
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    """Zet alle Zmanim Pro sensoren klaar."""
+async def async_setup_entry(
+    hass: HomeAssistant, 
+    entry: ConfigEntry, 
+    async_add_entities: AddEntitiesCallback
+) -> None:
+    """Zet alle Zmanim Pro sensoren klaar vanuit de Config Flow."""
     provider = DateProvider()
     
     lijst_van_sensoren = [
@@ -20,7 +26,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         # 2. Feestdagen sensor
         JewishHolidaySensor(provider),
         
-        # 3. Tijden sensoren (gekoppeld aan jouw berekeningen)
+        # 3. Tijden sensoren
         ZmanimTimeSensor(provider, "shkia", "Shkia (Zonsondergang)", "mdi:weather-sunset"),
         ZmanimTimeSensor(provider, "chatzos", "Chatzos (Middag)", "mdi:weather-sunny"),
         ZmanimTimeSensor(provider, "sof_zman_krias_shema", "Krias Shema (Grá)", "mdi:book-open-variant", "gra"),
