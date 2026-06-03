@@ -1,34 +1,52 @@
 from datetime import date
+from convertdate import hebrew
 import homeassistant.util.dt as dt_util
 
 class DateProvider:
-    """Levert de juiste datum aan de Zmanim sensoren."""
+    """Levert de juiste burgerlijke en Joodse datum aan de sensoren."""
 
     def __init__(self):
         pass
 
     def get_current_date(self) -> date:
-        """
-        Haalt de huidige datum op via de interne Home Assistant klok.
-        Dit houdt direct rekening met de ingestelde tijdzone in HA.
-        """
-        # dt_util.now() geeft de exacte lokale tijd binnen Home Assistant
+        """Haalt de huidige lokale datum van Home Assistant op."""
         return dt_util.now().date()
 
+    def get_hebrew_date_dict(self):
+        """Converteert de huidige HA datum naar de Joodse kalender."""
+        gregorian_date = self.get_current_date()
+        h_year, h_month, h_day = hebrew.from_gregorian(
+            gregorian_date.year,
+            gregorian_date.month,
+            gregorian_date.day
+        )
+        return {
+            "hebrew_year": h_year,
+            "hebrew_month": h_month,
+            "hebrew_day": h_day
+        }
+
     def get_current_jewish_month(self) -> int:
-        """Berekent de huidige Joodse maand op basis van de HA datum."""
-        h_date = self.get_current_date()
-        
-        # PAS DIT AAN: Roep hier jouw eigen 'core' omrekenmethode aan!
-        # Bijvoorbeeld:
-        # return core.convert_to_jewish(h_date).month
-        return 1  # Tijdelijke testwaarde (Maand 1 = Nissan)
+        """Geeft het nummer van de huidige Joodse maand terug."""
+        return self.get_hebrew_date_dict()["hebrew_month"]
 
     def get_current_jewish_day(self) -> int:
-        """Berekent de huidige Joodse dag op basis van de HA datum."""
-        h_date = self.get_current_date()
+        """Geeft het nummer van de huidige Joodse dag terug."""
+        return self.get_hebrew_date_dict()["hebrew_day"]
+
+    def get_jewish_date_string(self) -> str:
+        """Maakt een mooie tekst van de Joodse datum voor de sensor."""
+        data = self.get_hebrew_date_dict()
+        # Maandenlijst om het nummer om te zetten in een naam
+        maanden = [
+            "Nisan", "Iyar", "Sivan", "Tammuz", "Av", "Elul",
+            "Tishrei", "Cheshvan", "Kislev", "Tevet", "Shevat", 
+            "Adar", "Adar II"
+        ]
         
-        # PAS DIT AAN: Roep hier jouw eigen 'core' omrekenmethode aan!
-        # Bijvoorbeeld:
-        # return core.convert_to_jewish(h_date).day
-        return 14  # Tijdelijke testwaarde (Dag 14 van Nissan = Erev Pesach)
+        try:
+            maand_naam = maanden[data["hebrew_month"] - 1]
+        except IndexError:
+            maand_naam = "Onbekend"
+            
+        return f"{data['hebrew_day']} {maand_naam} {data['hebrew_year']}"
