@@ -1,67 +1,64 @@
 import logging
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.components.http import HomeAssistantView
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.const import Platform
+from homeassistant.components import webhook
+from aiohttp import web
 import homeassistant.util.dt as dt_util
 
 from .date_provider import DateProvider
 from .core_calculations import calculate_zmanim
-from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
-
 PLATFORMS = [Platform.SENSOR]
 
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Dit start ALTIJD direct op bij de boot van Home Assistant."""
-    # Registreer de HTTP-view direct op het allerhoogste niveau!
-    # Dit zorgt ervoor dat /api/zmanim ALTIJD direct herkend wordt zonder 404.
-    hass.http.register_view(ZmanimApiView(hass))
-    return True
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Zet de integratie klaar zodra de UI flow is voltooid."""
+    """Dit start de integratie op zodra hij in de UI is toegevoegd."""
+    
+    # Registreer een unieke, onbeveiligde webhook URL
+    webhook.async_register(
+        hass,
+        "zmanim_pro",                    # De domeinnaam
+        "zmanim_api_webhook",            # Een unieke ID voor de route
+        handle_webhook_request           # De functie die de JSON bouwt
+    )
+    
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
+async def handle_webhook_request(hass: HomeAssistant, webhook_id: str, request) -> web.Response:
+    """Dit wordt direct uitgevoerd als je de link opent in de browser."""
+    try:
+        provider = DateProvider()
+        current_date = provider.get_current_date()
+        
+        config_data = {
+            "timezone": str(dt_util.DEFAULT_TIME_ZONE),
+            "latitude": hass.config.latitude,
+            "longitude": hass.config.longitude,
+            "city": hass.config.location_name
+        }
+
+        zmanim_output = calculate_zmanim(config_data, current_date)
+        
+        # Bouw de JSON-output exact op zoals je Pi deed
+        data = {
+            "status": "ok",
+            "date": str(current_date),
+            "hebrew": {
+                "hebrew_day": provider.get_current_jewish_day(),
+                "hebrew_month": provider.get_current_jewish_month(),
+                "hebrew_date_string": provider.get_jewish_date_string()
+            },
+            "zmanim": zmanim_output["zmanim"]
+        }
+        return web.json_response(data)
+
+    except Exception as e:
+        _LOGGER.error("Webhook API Fout: %s", e)
+        return web.json_response({"status": "error", "message": str(e)}, status=500)
+
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Zorg voor een schone afsluiting."""
+    """Zorg voor een schone afsluiting en verwijder de webhook."""
+    webhook.async_unregister(hass, "zmanim_api_webhook")
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-
-
-class ZmanimApiView(HomeAssistantView):
-    """Maakt de onbeveiligde API-pagina aan in de browser op /api/zmanim."""
-    url = "/api/zmanim"
-    name = "api:zmanim"
-    requires_auth = False
-
-    def __init__(self, hass: HomeAssistant):
-        self.hass = hass
-        self.provider = DateProvider()
-
-    def get(self, request):
-        try:
-            current_date = self.provider.get_current_date()
-            config_data = {
-                "timezone": str(dt_util.DEFAULT_TIME_ZONE),
-                "latitude": self.hass.config.latitude,
-                "longitude": self.hass.config.longitude,
-                "city": self.hass.config.location_name
-            }
-
-            zmanim_output = calculate_zmanim(config_data, current_date)
-            
-            return self.json({
-                "status": "ok",
-                "date": str(current_date),
-                "hebrew": {
-                    "hebrew_day": self.provider.get_current_jewish_day(),
-                    "hebrew_month": self.provider.get_current_jewish_month(),
-                    "hebrew_date_string": self.provider.get_jewish_date_string()
-                },
-                "zmanim": zmanim_output["zmanim"]
-            })
-        except Exception as e:
-            _LOGGER.error("API Fout: %s", e)
-            return self.json({"status": "error", "message": str(e)}, 500)
