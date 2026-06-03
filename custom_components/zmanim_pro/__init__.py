@@ -4,7 +4,7 @@ from homeassistant.core import HomeAssistant
 import homeassistant.util.dt as dt_util
 
 from .date_provider import DateProvider
-from .core.core_calculations import calculate_zmanim
+from .core_calculations import calculate_zmanim
 
 _LOGGER = logging.getLogger(__name__)
 
