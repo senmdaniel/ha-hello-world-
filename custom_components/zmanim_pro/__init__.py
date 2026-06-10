@@ -8,11 +8,6 @@ from .core.core_calculations import calculate_zmanim
 
 _LOGGER = logging.getLogger(__name__)
 
-def setup(hass: HomeAssistant, config: dict) -> bool:
-    """Zet de Zmanim Pro API direct klaar bij het opstarten van HA."""
-    hass.http.register_view(ZmanimApiView(hass))
-    return True
-
 class ZmanimApiView(HomeAssistantView):
     """Maakt de onbeveiligde API-pagina aan op /api/zmanim."""
     url = "/api/zmanim"
